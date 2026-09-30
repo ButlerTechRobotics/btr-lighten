@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BTR Lighten</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Butler Tech Robotics pocket lightening for flat plates: STEP in, pick a face, walls and ribs, STEP out. Runs in the browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23181818'/%3E%3Cpath d='M6 9h20v14H6z' fill='none' stroke='%23f26a1b' stroke-width='2.4'/%3E%3Cpath d='M6 23l7-7 6 6 7-7' fill='none' stroke='%230b3bbf' stroke-width='2.4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=Big+Shoulders+Display:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="modulepreload" href="./vendor/three.module.js">
+<style>
+  /* Butler Tech Robotics theme (same as BTR Blockout): 144 orange, 325 blue, charcoal brand bar. */
+  :root {
+    color-scheme: light;
+    --bg: #eef1f5; --panel: #f7f8fa; --panel-2: #eceff3; --line: #d3d9e1;
+    --ink: #181a1f; --ink-2: #5d6675; --field: #ffffff;
+    --accent: #e85d12; --accent-ink: #ffffff; --accent-soft: #e85d1220;
+    --btr-orange: #f26a1b; --btr-blue: #0b3bbf;
+    --bar: #181818; --bar-2: #262626; --bar-line: #3a3a3a; --bar-fg: #ffffff; --bar-muted: #b9b9b9;
+    --viewport: #2d3440; --sketch-bg: #f3f5f8;
+    --ok: #2f8a3f; --warn: #b8541c; --bad: #c9302c;
+    --msg-err-bg: #fbe9e3; --msg-err-fg: #8a3410; --msg-warn-bg: #fff4e0; --msg-warn-fg: #7a4a10; --msg-ok-bg: #e6f4ec; --msg-ok-fg: #1f5e3b;
+    --sk-material: #c9ced6; --sk-pocket: #ffffff; --sk-line: #5d6675; --sk-pocket-line: #8b95a1; --sk-off: #f5c9ad; --sk-label: #45505c;
+    --f-display: "Big Shoulders Display", "Barlow Condensed", "Arial Narrow", sans-serif;
+    --f-ui: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --f-cond: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+    --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+    --radius: 8px;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #15171b; --panel: #1b1d21; --panel-2: #23262c; --line: #32363e;
+    --ink: #eceef2; --ink-2: #9aa2af; --field: #15171b;
+    --accent: #ff7a2e; --accent-ink: #1a0d04; --accent-soft: #ff7a2e2a;
+    --btr-orange: #ff7a2e; --btr-blue: #3d6bff;
+    --bar: #101010; --bar-2: #1f1f1f; --bar-line: #333; --bar-muted: #a8a8a8;
+    --viewport: #1f232a; --sketch-bg: #1b1e23;
+    --ok: #57c26a; --warn: #f0b429; --bad: #ff5f56;
+    --msg-err-bg: #3a1c14; --msg-err-fg: #ffb49a; --msg-warn-bg: #3a2c12; --msg-warn-fg: #f5d08a; --msg-ok-bg: #173022; --msg-ok-fg: #9ee0b4;
+    --sk-material: #4a515c; --sk-pocket: #15171b; --sk-line: #aab2bf; --sk-pocket-line: #7c8799; --sk-off: #6b3a1f; --sk-label: #b9c2cf;
+  } }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #15171b; --panel: #1b1d21; --panel-2: #23262c; --line: #32363e;
+    --ink: #eceef2; --ink-2: #9aa2af; --field: #15171b;
+    --accent: #ff7a2e; --accent-ink: #1a0d04; --accent-soft: #ff7a2e2a;
+    --btr-orange: #ff7a2e; --btr-blue: #3d6bff;
+    --bar: #101010; --bar-2: #1f1f1f; --bar-line: #333; --bar-muted: #a8a8a8;
+    --viewport: #1f232a; --sketch-bg: #1b1e23;
+    --ok: #57c26a; --warn: #f0b429; --bad: #ff5f56;
+    --msg-err-bg: #3a1c14; --msg-err-fg: #ffb49a; --msg-warn-bg: #3a2c12; --msg-warn-fg: #f5d08a; --msg-ok-bg: #173022; --msg-ok-fg: #9ee0b4;
+    --sk-material: #4a515c; --sk-pocket: #15171b; --sk-line: #aab2bf; --sk-pocket-line: #7c8799; --sk-off: #6b3a1f; --sk-label: #b9c2cf;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 15px/1.4 var(--f-ui); color: var(--ink); background: var(--bg);
+    display: grid; grid-template-rows: auto minmax(0, 1fr); grid-template-columns: 340px minmax(0, 1fr);
+    grid-template-areas: "top top" "side main";
+    overflow: hidden;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  /* brand bar */
+  header {
+    grid-area: top; display: flex; align-items: center; gap: 10px; padding: 6px 16px; flex-wrap: wrap; min-width: 0;
+    background: var(--bar); color: var(--bar-fg);
+    border-bottom: 3px solid var(--btr-orange); box-shadow: inset 0 -6px 0 -3px var(--btr-blue);
+  }
+  .brand { display: flex; align-items: center; gap: 8px; white-space: nowrap; margin-right: 6px; }
+  .brand .logo { width: 54px; height: 40px; flex: none; }
+  .bname { display: flex; flex-direction: column; font: 800 24px/0.95 var(--f-display); letter-spacing: .03em; text-transform: uppercase; }
+  .bname small { font: 600 10.5px/1.2 var(--f-cond); letter-spacing: .14em; color: #f26a1b; text-transform: uppercase; }
+  header .file { color: var(--bar-muted); flex: 1; min-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 14px var(--f-cond); letter-spacing: .02em; }
+  .tb {
+    border: 1px solid var(--bar-line); background: var(--bar-2); color: var(--bar-fg); border-radius: var(--radius);
+    padding: 6px 11px; font: 600 14px var(--f-cond); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; cursor: pointer;
+  }
+  .tb:hover { border-color: var(--bar-muted); }
+  .tb.primary { background: #f26a1b; border-color: #f26a1b; color: #fff; }
+  .tb:disabled { opacity: .45; cursor: default; }
+
+  /* side panel */
+  aside { grid-area: side; background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; padding: 10px 16px 24px; }
+  section { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  section:last-child { border-bottom: none; }
+  section h2 { font: 700 13px var(--f-cond); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+  section h2 .step { width: 22px; height: 22px; border-radius: 6px; background: var(--ink); color: var(--panel); font: 700 13px var(--f-cond); display: inline-grid; place-items: center; letter-spacing: 0; }
+  section.done h2 .step { background: var(--ok); color: #fff; }
+  section.locked { opacity: .5; pointer-events: none; }
+  .note { color: var(--ink-2); font-size: 13px; margin: 4px 0 8px; line-height: 1.4; }
+  .row { display: grid; grid-template-columns: minmax(0, 1fr) 128px; align-items: center; gap: 8px; margin: 6px 0; }
+  .row label small { color: var(--ink-2); display: block; font-size: 12px; }
+  .row input[type=number], .row select {
+    font: 500 13px var(--f-mono); font-variant-numeric: tabular-nums; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; width: 100%;
+    background: var(--field); text-align: right;
+  }
+  .row select { text-align: left; font-family: var(--f-ui); font-size: 14px; }
+  .row.check { grid-template-columns: 1fr auto; }
+  .row input[type=checkbox] { accent-color: var(--accent); width: 18px; height: 18px; }
+  .stack { display: flex; gap: 6px; flex-wrap: wrap; }
+  .stack .btn { flex: 1; }
+  #afterGen .btn { flex-basis: 100%; }
+  .btn {
+    padding: 7px 12px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); cursor: pointer;
+    font: 600 14px var(--f-cond); letter-spacing: .04em; text-transform: uppercase;
+  }
+  .btn:hover { border-color: var(--ink-2); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn.small { padding: 4px 9px; font-size: 13px; }
+  .btn.toggle.on { background: var(--btr-blue); color: #fff; border-color: var(--btr-blue); }
+  input[type=file] { display: none; }
+  .units { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--panel-2); justify-self: end; }
+  .units button { border: none; background: transparent; padding: 5px 12px; font: 600 14px var(--f-cond); text-transform: uppercase; color: var(--ink-2); cursor: pointer; }
+  .units button.on { background: var(--btr-blue); color: #fff; }
+  .facepick { padding: 8px 10px; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--ink-2); font-size: 13.5px; }
+  .facepick.set { border: 1px solid var(--accent); color: var(--ink); background: var(--accent-soft); }
+  .msg { padding: 8px 10px; border-radius: var(--radius); font-size: 13.5px; margin-top: 8px; }
+  .msg.err { background: var(--msg-err-bg); color: var(--msg-err-fg); }
+  .msg.warn { background: var(--msg-warn-bg); color: var(--msg-warn-fg); }
+  .msg.ok { background: var(--msg-ok-bg); color: var(--msg-ok-fg); }
+  kbd { font: 11px var(--f-mono); background: var(--panel-2); padding: 0 4px; border-radius: 4px; border: 1px solid var(--line); border-bottom-width: 2px; }
+
+  /* main area */
+  main { grid-area: main; position: relative; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; }
+  .tabs { display: flex; align-items: center; gap: 4px; padding: 0 10px; border-bottom: 1px solid var(--line); background: var(--panel); min-height: 40px; flex-wrap: wrap; }
+  .tabs button { background: none; border: none; padding: 9px 12px; color: var(--ink-2); cursor: pointer; font: 600 14px var(--f-cond); letter-spacing: .06em; text-transform: uppercase; border-bottom: 3px solid transparent; }
+  .tabs button.active { color: var(--ink); border-bottom-color: var(--accent); }
+  .tabs .hint { margin-left: auto; color: var(--ink-2); font-size: 12.5px; padding: 4px 0; }
+  .stage { position: relative; background: var(--viewport); overflow: hidden; min-height: 0; }
+  .stage > * { position: absolute; inset: 0; }
+  #view3d canvas, #sketch { width: 100%; height: 100%; display: block; }
+  #sketch { background: var(--sketch-bg); cursor: crosshair; touch-action: none; }
+  .hidden { display: none !important; }
+  .status { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 14px; padding: 6px 12px; background: var(--panel); border-top: 1px solid var(--line); color: var(--ink-2); font-size: 13.5px; min-height: 32px; }
+  .status #statusText { flex: 1; min-width: 0; }
+  .status b { color: var(--ink); font-weight: 600; }
+  .status .warn { color: var(--warn); }
+  .status .ok { color: var(--ok); }
+  .status .ver { font: 500 11.5px var(--f-mono); color: var(--ink-2); white-space: nowrap; }
+  .tools { position: absolute; top: 10px; left: 10px; right: auto; bottom: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .loading { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(24,26,31,.6); color: #fff; z-index: 5; text-align: center; padding: 16px; }
+  .loading b { font: 700 18px var(--f-cond); letter-spacing: .06em; text-transform: uppercase; display: block; }
+  .loading span { font-size: 13px; color: #d5d9e0; }
+  .spinner { width: 34px; height: 34px; border-radius: 50%; border: 4px solid #ffffff33; border-top-color: #f26a1b; margin: 0 auto 10px; animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+  .legend { position: absolute; left: 10px; bottom: 10px; top: auto; right: auto; font-size: 12.5px; color: var(--ink-2); background: var(--panel); border: 1px solid var(--line); padding: 6px 9px; border-radius: 6px; pointer-events: none; }
+  .legend span { display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border-radius: 2px; }
+
+  /* feedback dialog */
+  dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--ink); width: min(520px, calc(100% - 32px)); padding: 18px 20px; }
+  dialog::backdrop { background: #0007; }
+  dialog h3 { font: 800 24px var(--f-display); text-transform: uppercase; margin: 0 0 6px; letter-spacing: .02em; }
+  dialog textarea, dialog input[type=text] { width: 100%; border: 1px solid var(--line); background: var(--field); border-radius: 8px; padding: 8px 10px; font: 15px/1.4 var(--f-ui); }
+  dialog textarea { min-height: 120px; resize: vertical; }
+  .fb-types { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+  .fb-types button { border: 1px solid var(--line); background: var(--panel-2); border-radius: 999px; padding: 6px 12px; font: 600 15px var(--f-cond); cursor: pointer; }
+  .fb-types button[aria-pressed="true"] { background: var(--btr-blue); border-color: var(--btr-blue); color: #fff; }
+
+  @media (max-width: 820px) {
+    body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(320px, 55vh) auto; grid-template-areas: "top" "main" "side"; overflow: auto; }
+    aside { border-right: none; border-top: 1px solid var(--line); overflow: visible; }
+    .brand .logo { width: 44px; height: 33px; }
+    .bname small { display: none; }
+    header { gap: 6px; padding: 6px 12px; }
+    .tabs .hint { display: none; }
+    header .file { flex-basis: 100%; order: 5; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><svg class="logo" viewBox="0 0 120 90" role="img" aria-label="Butler Tech Robotics"><path d="M16,45 C16,27 40,24 60,45 C80,66 104,63 104,45 C104,27 80,24 60,45 C40,66 16,63 16,45 Z" fill="none" stroke="#0B3BBF" stroke-width="9"/><path d="M85.9,37.5 L92.6,39.8 L92.6,50.2 L85.9,52.5 L85.4,54.1 L89.4,60.0 L83.3,68.3 L76.5,66.3 L75.2,67.3 L75.0,74.4 L65.2,77.6 L60.8,72.0 L59.2,72.0 L54.8,77.6 L45.0,74.4 L44.8,67.3 L43.5,66.3 L36.7,68.3 L30.6,60.0 L34.6,54.1 L34.1,52.5 L27.4,50.2 L27.4,39.8 L34.1,37.5 L34.6,35.9 L30.6,30.0 L36.7,21.7 L43.5,23.7 L44.8,22.7 L45.0,15.6 L54.8,12.4 L59.2,18.0 L60.8,18.0 L65.2,12.4 L75.0,15.6 L75.2,22.7 L76.5,23.7 L83.3,21.7 L89.4,30.0 L85.4,35.9 Z" fill="#181818" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><path d="M60,45 L49.4,25.7 A22,22 0 0 1 70.6,25.7 Z" fill="#F26A1B"/><path d="M60,45 L75.1,29.0 A22,22 0 0 1 81.6,49.1 Z" fill="#F26A1B"/><path d="M60,45 L79.9,54.4 A22,22 0 0 1 62.8,66.8 Z" fill="#F26A1B"/><path d="M60,45 L57.2,66.8 A22,22 0 0 1 40.1,54.4 Z" fill="#F26A1B"/><path d="M60,45 L38.4,49.1 A22,22 0 0 1 44.9,29.0 Z" fill="#F26A1B"/><circle cx="60" cy="45" r="6" fill="#181818"/><path d="M60,45 C76,62 100,62 102,47" fill="none" stroke="#0B3BBF" stroke-width="9" stroke-linecap="round"/><text x="60" y="55" text-anchor="middle" font-family="Big Shoulders Display, Arial Black, sans-serif" font-weight="800" font-size="30" fill="#fff" stroke="#181818" stroke-width="5" paint-order="stroke" letter-spacing="1">BTR</text></svg><span class="bname">Lighten<small>Butler Tech Robotics · 144 · 325</small></span></div>
+  <label class="tb" for="fileInput" id="openLabel">Open STEP</label>
+  <input id="fileInput" type="file" accept=".step,.stp,.STEP,.STP,.sldprt">
+  <button class="tb" id="demoBtn">Try demo plate</button>
+  <div class="file" id="fileName">No part loaded</div>
+  <button class="tb" id="feedbackBtn" title="Ideas, complaints, bug reports">Feedback</button>
+  <button class="tb primary" id="exportBtn" disabled>Export STEP</button>
+</header>
+
+<aside>
+  <section id="secFace">
+    <h2><span class="step">1</span>Pick the face to pocket</h2>
+    <div class="note">Click a flat face in the 3D view. Pockets are cut into this face, all the way through by default.</div>
+    <div class="facepick" id="facePick">No face selected</div>
+    <div class="row" style="margin-top:8px">
+      <label>Units</label>
+      <div class="units"><button id="unitIn" class="on">in</button><button id="unitMm">mm</button></div>
+    </div>
+  </section>
+
+  <section id="secWalls" class="locked">
+    <h2><span class="step">2</span>Walls</h2>
+    <div class="row"><label>Outer wall<small>material left around the edge</small></label><input type="number" data-p="outerWall" step="0.01"></div>
+    <div class="row"><label>Rib width</label><input type="number" data-p="ribWidth" step="0.01"></div>
+    <div class="row"><label>Hole wall<small>ring left around each hole</small></label><input type="number" data-p="holeWall" step="0.01"></div>
+    <div class="row"><label>Corner radius<small>½ the end-mill diameter</small></label><input type="number" data-p="filletRadius" step="0.005"></div>
+    <div class="row check"><label for="roundReflex">Round outside corners too</label><input type="checkbox" id="roundReflex" data-p="roundReflex" checked></div>
+  </section>
+
+  <section id="secPattern" class="locked">
+    <h2><span class="step">3</span>Rib pattern</h2>
+    <div class="row"><label>Pattern</label>
+      <select data-p="pattern">
+        <option value="isogrid">Isogrid</option>
+        <option value="hex">Honeycomb</option>
+        <option value="square">Square grid</option>
+        <option value="diamond">Diamond</option>
+        <option value="auto">Connect holes</option>
+        <option value="none">Custom ribs only</option>
+      </select></div>
+    <div class="grid-only">
+      <div class="row"><label>Cell size<small>triangle side / hex width</small></label><input type="number" data-p="cellSize" step="0.05"></div>
+      <div class="row"><label>Angle<small>degrees</small></label><input type="number" data-p="angle" step="5"></div>
+      <div class="row"><label>Shift X</label><input type="number" data-p="offsetX" step="0.05"></div>
+      <div class="row"><label>Shift Y</label><input type="number" data-p="offsetY" step="0.05"></div>
+    </div>
+    <div class="note">Custom ribs: switch to the <b>Sketch</b> tab, pick the rib tool, then click start and end points. Ribs snap to hole centers.</div>
+  </section>
+
+  <section id="secHoles" class="locked">
+    <h2><span class="step">4</span>Holes &amp; clean-up</h2>
+    <div class="note">Every hole gets a wall by default. In the Sketch tab, click a hole to drop its wall and let it open into the pocket.</div>
+    <div class="row"><label>Tie-in ribs per floating hole<small>hole walls that touch nothing get spokes</small></label><input type="number" data-p="islandSpokes" step="1" min="0" max="4"></div>
+    <div class="row"><label>Min feature<small>slivers narrower than this are dropped</small></label><input type="number" data-p="cleanup" step="0.005"></div>
+    <div class="row"><label>Min pocket area<small id="areaUnit">in²</small></label><input type="number" data-p="minArea" step="0.01"></div>
+  </section>
+
+  <section id="secDepth" class="locked">
+    <h2><span class="step">5</span>Depth</h2>
+    <div class="row"><label>Cut</label>
+      <select id="depthMode"><option value="through">Through all</option><option value="custom">Set depth</option></select></div>
+    <div class="row" id="depthRow"><label>Depth</label><input type="number" id="depthVal" step="0.01"></div>
+    <div class="note" id="depthNote"></div>
+  </section>
+
+  <section id="secGo" class="locked">
+    <div class="stack">
+      <button class="btn primary" id="generateBtn">Generate</button>
+      <button class="btn" id="resetParamsBtn">Reset settings</button>
+    </div>
+    <div class="stack" id="afterGen" style="margin-top:6px; display:none">
+      <button class="btn" id="keepBtn">Keep &amp; do another face</button>
+      <button class="btn" id="undoBtn">Undo</button>
+    </div>
+    <div id="msg"></div>
+  </section>
+</aside>
+
+<main>
+  <div class="tabs">
+    <button id="tab3d" class="active">3D view</button>
+    <button id="tabSketch">Sketch</button>
+    <span class="hint" id="tabHint">Drag to orbit · scroll to zoom · right-drag to pan</span>
+  </div>
+  <div class="stage">
+    <div id="view3d"></div>
+    <canvas id="sketch" class="hidden"></canvas>
+    <div class="legend hidden" id="sketchLegend">
+      <span style="background:var(--sk-material)"></span>material &nbsp; <span style="background:var(--sk-pocket);border:1px solid var(--line)"></span>pocket &nbsp;
+      <span style="background:#f26a1b"></span>your rib &nbsp; <span style="background:#3d6bff"></span>auto tie-in &nbsp;
+      <span style="background:var(--sk-off)"></span>hole wall off
+    </div>
+    <div class="tools hidden" id="sketchTools">
+      <button class="btn toggle small on" id="toolSelect">Select holes</button>
+      <button class="btn toggle small" id="toolRib">Draw rib <kbd>R</kbd></button>
+      <button class="btn toggle small" id="toolErase">Erase rib <kbd>E</kbd></button>
+      <button class="btn small" id="clearRibs">Clear ribs</button>
+      <button class="btn small" id="fitSketch">Fit</button>
+    </div>
+    <div class="loading" id="loading"><div><div class="spinner"></div><b id="loadingTitle">Loading the geometry engine</b><span id="loadingSub">First visit downloads about 25 MB; after that it opens straight away.</span></div></div>
+  </div>
+  <div class="status"><span id="statusText">Starting up…</span><span class="ver" id="version"></span></div>
+</main>
+
+<dialog id="fbDialog">
+  <h3>Send feedback</h3>
+  <p class="note" style="margin-top:0">Ideas, complaints and bug reports all help.</p>
+  <div class="fb-types" id="fbTypes" role="group" aria-label="Kind of feedback">
+    <button type="button" data-v="Idea" aria-pressed="true">Idea</button>
+    <button type="button" data-v="Complaint" aria-pressed="false">Complaint</button>
+    <button type="button" data-v="Bug report" aria-pressed="false">Bug report</button>
+  </div>
+  <label class="note" for="fbMsg" style="display:block;margin:0 0 4px">Your feedback</label>
+  <textarea id="fbMsg" placeholder="What happened, or what would make this better?"></textarea>
+  <label class="note" for="fbName" style="display:block;margin:10px 0 4px">Your name (optional)</label>
+  <input type="text" id="fbName" autocomplete="name">
+  <p class="note">This opens the team feedback form with your note filled in. Press <b>Submit</b> there to send it.</p>
+  <div class="stack"><button class="btn" id="fbCancel" type="button">Cancel</button><button class="btn primary" id="fbSend" type="button">Open the form</button></div>
+</dialog>
+
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
